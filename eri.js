@@ -1,4 +1,4 @@
-const { Client, Collection, Intents , GatewayIntentBits} = require("discord.js");
+const { Client, Collection, Intents , GatewayIntentBits} = require('discord.js');
 const distube = require("distube")
 const fs = require('fs');
 const { SpotifyPlugin } = require("@distube/spotify");
@@ -12,8 +12,14 @@ client.player = new distube.DisTube(client, {
     leaveOnFinish:false,
     youtubeCookie:client.config.discord.cookie,
     plugins:[new SpotifyPlugin({
-        emitEventsAfterFetching: true
-    }),new YtDlpPlugin({ update: true })]
+        parallel: true,
+        emitEventsAfterFetching: false,
+        api: {
+          clientId: client.config.discord.spotifyclientId,
+          clientSecret: client.config.discord.spotifyclientSecret,
+        },
+      }),new YtDlpPlugin({ update: true })],
+    youtubeCookie:client.config.discord.cookie
 });
 
 fs.readdirSync('./commands').forEach(dirs => {

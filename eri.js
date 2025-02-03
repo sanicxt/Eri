@@ -1,5 +1,5 @@
 const { Client, Collection, GatewayIntentBits } = require("discord.js");
-const { Connectors, NodeManager } = require("shoukaku");
+const { Connectors, NodeInfo } = require("shoukaku");
 const { Kazagumo } = require("kazagumo");
 const KazagumoFilter = require('kazagumo-filter');
 const Spotify = require('kazagumo-spotify');
@@ -95,23 +95,28 @@ async function initializeClient() {
     const nodes = await fetchNodes();
     console.log(`Loaded ${nodes.length} Lavalink nodes`);
 
-    client.player = new Kazagumo({
-        plugins: [
-            new KazagumoFilter(),
-            new Spotify({
-                clientId: client.config.discord.spotify_client_id,
-                clientSecret: client.config.discord.spotify_client_secret,
-                playlistPageLimit: 1,
-                albumPageLimit: 1,
-                searchLimit: 10,
-            })
-        ],
-        defaultSearchEngine: "youtube-music",
-        send: (guildId, payload) => {
-            const guild = client.guilds.cache.get(guildId);
-            if (guild) guild.shard.send(payload);
-        }
-    }, new Connectors.DiscordJS(client), nodes);
+    try {
+        client.player = new Kazagumo({
+            plugins: [
+                new KazagumoFilter(),
+                new Spotify({
+                    clientId: client.config.discord.spotify_client_id,
+                    clientSecret: client.config.discord.spotify_client_secret,
+                    playlistPageLimit: 1,
+                    albumPageLimit: 1,
+                    searchLimit: 10,
+                })
+            ],
+            defaultSearchEngine: "youtube-music",
+            send: (guildId, payload) => {
+                const guild = client.guilds.cache.get(guildId);
+                if (guild) guild.shard.send(payload);
+            }
+        }, new Connectors.DiscordJS(client), nodes);
+    } catch (error) {
+        console.error('Failed to initialize Kazagumo player:', error);
+        throw new Error('Critical error: Music player initialization failed');
+    }
 
     // Load commands
     fs.readdirSync('./commands').forEach(dirs => {

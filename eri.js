@@ -10,24 +10,10 @@ client.commands = new Collection();
 client.colour = 0x17BEBB;
 const Nodes = [
   {
-    name: 'lava1.horizxon.tech',
-    url: 'lava1.horizxon.tech',
+    name: 'Catfein DE',
+    url: 'lavalink.alfari.id',
     port: 443,
-    auth: 'horizxon.tech',
-    secure: true
-  },
-  {
-    name: 'lava2.horizxon.tech',
-    url: 'lava2.horizxon.tech',
-    port: 443,
-    auth: 'horizxon.tech',
-    secure: true
-  },
-  {
-    name: 'lava3.horizxon.tech',
-    url: 'lava3.horizxon.tech',
-    port: 443,
-    auth: 'horizxon.tech',
+    auth: 'catfein',
     secure: true
   },
 ]
@@ -42,7 +28,7 @@ const Nodes = [
                 searchLimit: 10, // optional ( track search limit. Max 50 )
               })
           ],
-        defaultSearchEngine: "youtube",
+        defaultSearchEngine: "youtube-music",
         // MAKE SURE YOU HAVE THIS
         send: (guildId, payload) => {
             const guild = client.guilds.cache.get(guildId);
@@ -76,6 +62,4 @@ const Nodes = [
     }
     
     client.login(client.config.discord.token)
-    require("./reload")
-
 

@@ -4,7 +4,7 @@ require('dotenv').config()
 const data = require("./bot/data")
 const commands = data.commands; 
 
-const rest = new REST({ version: "9" }).setToken(process.env.TOKEN);
+const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
 
 (async () => {
   try {

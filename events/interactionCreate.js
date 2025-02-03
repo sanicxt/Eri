@@ -1,84 +1,110 @@
-const skip = require("../commands/music/skip")
-const stop = require("../commands/music/stop")
-const queue = require("../commands/music/queue")
-const pp = require('../bot/buttons')
-const {  GuildMember } = require('discord.js')
-module.exports = async (client,interaction) =>
-{
-    const query = client.player.getPlayer(interaction.guildId);
-    //buttom names pause/resumebtn,skipbtn,stopbtn,queuebtn
-    if(interaction.isButton()) {
-        if(interaction.customId == "pause/resumebtn")
-        {
-            if(query.paused) {
-                if (!(interaction.member instanceof GuildMember) || !interaction.member.voice.channel) {
-                    return void interaction.reply({ content: "You are not in a voice channel!", ephemeral: true });
-                }
-            
-                if (interaction.guild.me?.voice?.channelId && interaction.member?.voice?.channelId !== interaction.guild.me?.voice?.channelId) {
-                    return void interaction.reply({ content: "You are not in my voice channel!", ephemeral: true });
-                }
-                        if (!query|| !query.paused) return void interaction.reply({ content: "❌ | No music is being played!" });
-                        query.pause(false);
-                        return void  interaction.update({
-                            components:[pp.pause()]
-                        })
-               }
-            else {
-                if (!(interaction.member instanceof GuildMember) || !interaction.member.voice.channel) {
-                    return void interaction.reply({ content: "You are not in a voice channel!", ephemeral: true });
-                }
-            
-                if (interaction.guild.me?.voice?.channelId && interaction.member?.voice?.channelId !== interaction.guild.me?.voice?.channelId) {
-                    return void interaction.reply({ content: "You are not in my voice channel!", ephemeral: true });
-                }
-                        if (!query|| !query.playing) return void interaction.reply({ content: "❌ | No music is being played!" });
-                        query.pause(true);
-                        return void  interaction.update({
-                            components:[pp.resume()]
-                        })
-            }
-        }
-        else if(interaction.customId == "skipbtn")
-        {
-            skip.execute(client,interaction);
-        }
-        else if(interaction.customId == "stopbtn")
-        {
-            stop.execute(client,interaction);
-        }
-        else if(interaction.customId =="voldownbtn")
-        {
-            if (!(interaction.member instanceof GuildMember) || !interaction.member.voice.channel) {
-                return void interaction.reply({ content: "You are not in a voice channel!", ephemeral: true });
-            }
+const skip = require("../commands/music/skip");
+const stop = require("../commands/music/stop");
+const pp = require('../bot/buttons');
+const { GuildMember } = require('discord.js');
+
+// Constants for button IDs
+const BUTTON_IDS = {
+    PAUSE_RESUME: 'pause/resumebtn',
+    SKIP: 'skipbtn',
+    STOP: 'stopbtn',
+    VOL_DOWN: 'voldownbtn',
+    VOL_UP: 'volupbtn'
+};
+
+// Helper function to check voice permissions
+const checkVoicePermissions = (interaction) => {
+    if (!(interaction.member instanceof GuildMember) || !interaction.member.voice.channel) {
+        throw new Error("You are not in a voice channel!");
+    }
+
+    if (interaction.guild.me?.voice?.channelId && 
+        interaction.member?.voice?.channelId !== interaction.guild.me?.voice?.channelId) {
+        throw new Error("You are not in my voice channel!");
+    }
+};
+
+// Helper function to check if music is playing
+const checkMusicPlaying = (query) => {
+    if (!query || !query.playing) {
+        throw new Error("❌ | No music is being played!");
+    }
+};
+
+// Helper function to handle volume changes
+const handleVolumeChange = (query, delta) => {
+    //if vol is less than 0 or greater than 100, set it to 0 or 100 respectively
+    const newVolume = Math.max(0, Math.min(100, query.volume + delta));
+    query.setVolume(newVolume);
+};
+
+module.exports = async (client, interaction) => {
+    try {
+        // Handle non-button and non-command interactions
+        if (!interaction.isButton() && !interaction.isCommand()) return;
         
-            if (interaction.guild.me?.voice?.channelId && interaction.member?.voice?.channelId !== interaction.guild.me?.voice?.channelId) {
-                return void interaction.reply({ content: "You are not in my voice channel!", ephemeral: true });
+        const query = client.player.getPlayer(interaction.guildId);
+
+        // Handle button interactions
+        if (interaction.isButton()) {
+            switch (interaction.customId) {
+                case BUTTON_IDS.PAUSE_RESUME:
+                    await handlePauseResume(interaction, query);
+                    break;
+                case BUTTON_IDS.SKIP:
+                    await skip.execute(client, interaction);
+                    break;
+                case BUTTON_IDS.STOP:
+                    await stop.execute(client, interaction);
+                    break;
+                case BUTTON_IDS.VOL_DOWN:
+                    await handleVolumeButton(interaction, query, -10);
+                    break;
+                case BUTTON_IDS.VOL_UP:
+                    await handleVolumeButton(interaction, query, 10);
+                    break;
             }
-            if (!query|| !query.playing) return void interaction.reply({ content: "❌ | No music is being played!" });
-            query.setVolume(query.volume * 100 - 10 );
-            return void interaction.update({ components: [pp.pause()] })
+            return;
         }
-        else if(interaction.customId =="volupbtn")
-        {
-            if (!(interaction.member instanceof GuildMember) || !interaction.member.voice.channel) {
-                return void interaction.reply({ content: "You are not in a voice channel!", ephemeral: true });
-            }
+
+        // Handle commands
+        if (!interaction.guildId) return;
         
-            if (interaction.guild.me?.voice?.channelId && interaction.member?.voice?.channelId !== interaction.guild.me?.voice?.channelId) {
-                return void interaction.reply({ content: "You are not in my voice channel!", ephemeral: true });
-            }
-            if (!query|| !query.playing) return void interaction.reply({ content: "❌ | No music is being played!" });
-            query.setVolume(query.volume * 100 + 10 );
-            return void interaction.update({ components: [pp.pause()] })
+        const command = client.commands.get(interaction.commandName);
+        if (command) await command.execute(client, interaction);
+
+    } catch (error) {
+        console.error('Error in interaction:', error);
+        const reply = { 
+            content: error.message || "An error occurred!", 
+            ephemeral: true 
+        };
+        
+        if (interaction.deferred || interaction.replied) {
+            await interaction.followUp(reply);
+        } else {
+            await interaction.reply(reply);
         }
     }
-    if (!interaction.isCommand() || !interaction.guildId) return;
+};
 
-	if (!client.commands.has(interaction.commandName)) return;
+// Helper functions for handling specific button actions
+async function handlePauseResume(interaction, query) {
+    checkVoicePermissions(interaction);
+    checkMusicPlaying(query);
 
-	const cmd = client.commands.get(interaction.commandName);
+    const isPaused = query.paused;
+    query.pause(!isPaused);
+    
+    await interaction.update({
+        components: [isPaused ? pp.pause() : pp.resume()]
+    });
+}
 
-    if(cmd) cmd.execute(client, interaction);
+async function handleVolumeButton(interaction, query, delta) {
+    checkVoicePermissions(interaction);
+    checkMusicPlaying(query);
+    
+    handleVolumeChange(query, delta);
+    await interaction.update({ components: [pp.pause()] });
 }

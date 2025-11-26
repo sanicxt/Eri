@@ -11,9 +11,9 @@ client.colour = 0x17BEBB;
 const Nodes = [
   {
     name: 'Catfein DE',
-    url: 'lavalink.alfari.id',
+    url: 'lava-v4.ajieblogs.eu.org',
     port: 443,
-    auth: 'catfein',
+    auth: 'https://dsc.gg/ajidevserver',
     secure: true
   },
 ]

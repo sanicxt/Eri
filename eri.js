@@ -8,6 +8,7 @@ const client = new Client({ intents: [ GatewayIntentBits.Guilds ,GatewayIntentBi
 client.config = require("./bot/config")
 client.commands = new Collection();
 client.colour = 0x17BEBB;
+<<<<<<< HEAD
 const axios = require('axios');
 
 const SSL_API = 'https://lavalink-list.ajieblogs.eu.org/SSL';
@@ -87,6 +88,17 @@ async function initPlayerAndLogin() {
 
     console.log(`Using ${Nodes.length} Lavalink node(s) from API`);
 
+=======
+const Nodes = [
+  {
+    name: 'Catfein DE',
+    url: 'public.rive.wtf',
+    port: 443,
+    auth: 'youshallnotpass',
+    secure: true
+  },
+]
+>>>>>>> 5bcc4c7
     client.player =  new Kazagumo({
         plugins: [
             new KazagumoFilter(),

@@ -1,7 +1,7 @@
-const { Client, Collection, Intents , GatewayIntentBits} = require("discord.js");
+const { Client, Collection, GatewayIntentBits } = require("discord.js");
 const fs = require('fs');
-const {Connectors} = require("shoukaku");
-const  {Kazagumo} = require("kazagumo");
+// Use Connectors exported by kazagumo (not shoukaku) for compatibility
+const { Connectors, Kazagumo } = require("kazagumo");
 const KazagumoFilter = require('kazagumo-filter');
 const Spotify = require('kazagumo-spotify');
 const client = new Client({ intents: [ GatewayIntentBits.Guilds ,GatewayIntentBits.GuildMessages,GatewayIntentBits.GuildVoiceStates] });
@@ -26,43 +26,44 @@ async function initPlayerAndLogin() {
         const commands = fs.readdirSync(`./commands/${dirs}`).filter(files => files.endsWith('.js'));
 
         for (const file of commands) {
-            const command = require(`./commands/${dirs}/${file}`);
-            console.log(`Loading command ${file}`);
-            client.commands.set(command.name.toLowerCase(), command);
-        };
+            try {
+                const command = require(`./commands/${dirs}/${file}`);
+                console.log(`Loading command ${file}`);
+                if (command && command.name) client.commands.set(command.name.toLowerCase(), command);
+            } catch (err) {
+                console.error(`Failed to load command ${file}:`, err);
+            }
+        }
     });
 
     const events = fs.readdirSync('./events').filter(file => file.endsWith('.js'));
     for (const file of events) {
-        console.log(`Loading discord.js event ${file}`);
-        const event = require(`./events/${file}`);
-        client.on(file.split(".")[0], event.bind(null, client));
-    };
+        try {
+            console.log(`Loading discord.js event ${file}`);
+            const event = require(`./events/${file}`);
+            if (typeof event === 'function') client.on(file.split(".")[0], event.bind(null, client));
+        } catch (err) {
+            console.error(`Failed to load event ${file}:`, err);
+        }
+    }
 
+    // Build plugin list dynamically: only include Spotify plugin if credentials are provided
+    const plugins = [new KazagumoFilter()];
+    if (client.config.discord.spotify_client_id && client.config.discord.spotify_client_secret) {
+        plugins.push(new Spotify({
+            clientId: client.config.discord.spotify_client_id,
+            clientSecret: client.config.discord.spotify_client_secret,
+            playlistPageLimit: 1,
+            albumPageLimit: 1,
+            searchLimit: 10
+        }));
+    } else {
+        console.warn('Spotify credentials not found, Spotify plugin will be disabled.');
+    }
 
-const Nodes = [
-  {
-    name: 'Catfein DE',
-    url: 'public.rive.wtf',
-    port: 443,
-    auth: 'youshallnotpass',
-    secure: true
-  },
-]
-
-    client.player =  new Kazagumo({
-        plugins: [
-            new KazagumoFilter(),
-            new Spotify({
-                clientId: client.config.discord.spotify_client_id,
-                clientSecret: client.config.discord.spotify_client_secret,
-                playlistPageLimit: 1, // optional ( 100 tracks per page )
-                albumPageLimit: 1, // optional ( 50 tracks per page )
-                searchLimit: 10, // optional ( track search limit. Max 50 )
-              })
-          ],
+    client.player = new Kazagumo({
+        plugins,
         defaultSearchEngine: "youtube-music",
-        // MAKE SURE YOU HAVE THIS
         send: (guildId, payload) => {
             const guild = client.guilds.cache.get(guildId);
             if (guild) guild.shard.send(payload);

@@ -14,7 +14,7 @@ module.exports = {
     }
     await interaction.deferReply();
     const Player = client.player.getPlayer(interaction.guildId);
-    if (!Player || !Player.playing) return void interaction.followUp({ content: "❌ | No music is being played!" });
+    if (!Player || !Player.playing) return void interaction.followUp({ content: "❌ | No music is being played!", flags: MessageFlags.Ephemeral });
     const success = Player.destroy();
     if (success) interaction.deleteReply();
    }

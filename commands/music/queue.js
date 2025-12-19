@@ -1,4 +1,4 @@
-const { GuildMember } = require("discord.js");
+const { GuildMember, MessageFlags } = require("discord.js");
 
 function formatDuration(ms = 0) {
     const totalSeconds = Math.floor(ms / 1000);
@@ -66,10 +66,10 @@ module.exports = {
     }
     await interaction.deferReply();
     const player = client.player.getPlayer(interaction.guildId);
-    if (!player || !player.playing) return void interaction.followUp({ content: "❌ | No music is being played!" });
+    if (!player || !player.playing) return void interaction.followUp({ content: "❌ | No music is being played!", flags: MessageFlags.Ephemeral });
 
     const resp = buildQueueEmbed(client, player);
-    if (!resp) return void interaction.followUp({ content: "❌ | No music is being played!" });
+    if (!resp) return void interaction.followUp({ content: "❌ | No music is being played!", flags: MessageFlags.Ephemeral });
     return void interaction.followUp(resp);
   },
   buildQueueEmbed

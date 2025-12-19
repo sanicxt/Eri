@@ -26,9 +26,10 @@ const checkVoicePermissions = (interaction) => {
     }
 };
 
-// Helper function to check if music is playing
+// Helper function to check if music is playing or paused
 const checkMusicPlaying = (query) => {
-    if (!query || !query.playing) {
+    // Allow control when a track is playing or paused (so resume works)
+    if (!query || (!query.playing && !query.paused)) {
         throw new Error("❌ | No music is being played!");
     }
 };

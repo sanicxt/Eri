@@ -14,12 +14,12 @@ module.exports = {
     }
             await interaction.deferUpdate();
             const Player = client.player.getPlayer(interaction.guildId);
-            if (!Player || !Player.playing) return void interaction.channel.send({ content: "❌ | No music is being played!" });
+            // Allow control when a player exists and is playing or paused
+            if (!Player || (!Player.playing && !Player.paused)) return void interaction.followUp({ content: "❌ | No music is being played!", flags: MessageFlags.Ephemeral });
+            const queued = (Player.queue?.length) || 0;
+            if (queued === 0) return void interaction.followUp({ content: "❌ | There's nothing in the queue to skip.", flags: MessageFlags.Ephemeral });
             const currentTrack = Player.queue.current;
             const success = Player.skip();
-            // return void interaction.channel.send({
-            //     content: success ? `✅ | Skipped **${currentTrack.name}**!` : "❌ | Something went wrong!"
-            
             return void interaction.channel.send({embeds: success ? [{description:`✅ | Skipped **${currentTrack.title}**!`,color:`${client.colour}`}] : [{description:`❌ | Something went wrong!`,color:`${client.colour}`}]
         });
     }

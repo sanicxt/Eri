@@ -14,10 +14,11 @@ module.exports = {
     }
     await interaction.deferReply();
     const player = client.player.getPlayer(interaction.guildId);
-    if (!player || !player.playing) return void interaction.followUp({ content: "❌ | No music is being played!" });
+    if (!player || !player.playing) return void interaction.followUp({ content: "❌ | No music is being played!", flags: MessageFlags.Ephemeral });
     const loopMode = interaction.options.get("mode").value;
     const modes = ["none", "track", "queue"];
     const success = player.setLoop(modes[loopMode]);
-    return void interaction.followUp({ content: success ? `${modes[loopMode]} | Updated loop mode!` : "❌ | Could not update loop mode!" });
+    if (success) return void interaction.followUp({ content: `${modes[loopMode]} | Updated loop mode!` });
+    return void interaction.followUp({ content: "❌ | Could not update loop mode!", flags: MessageFlags.Ephemeral });
    }
 }

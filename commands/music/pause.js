@@ -14,8 +14,9 @@ module.exports = {
     }
     await interaction.deferReply();
     const Player = client.player.getPlayer(interaction.guildId);
-    if (!Player || !Player.playing) return void interaction.followUp({ content: "❌ | No music is being played!" });
+    if (!Player || !Player.playing) return void interaction.followUp({ content: "❌ | No music is being played!", flags: MessageFlags.Ephemeral });
     const success = Player.pause(true);
-    return void interaction.followUp({ content: success ? "▶ | Paused!" : "❌ | Something went wrong!" });
+    if (success) return void interaction.followUp({ content: "▶ | Paused!" });
+    return void interaction.followUp({ content: "❌ | Something went wrong!", flags: MessageFlags.Ephemeral });
    }
 }

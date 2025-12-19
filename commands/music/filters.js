@@ -42,7 +42,7 @@ module.exports = {
         "slow"
     ];
     
-    if (!player || !player.playing) return void interaction.followUp({ content: "❌ | No music is being played!" });
+    if (!player || !player.playing) return void interaction.followUp({ content: "❌ | No music is being played!", flags: MessageFlags.Ephemeral });
     const filter = interaction.options.get("effect") || null;
     const success = !filter ? await player.shoukaku.setFilters({}) : await player.filter(choices[filter.value]);
     return void interaction.followUp({ content: `🎵 |  ${!success ? `Applied ${choices[filter.value]}` : "Removed every"} filter to the current song!` });

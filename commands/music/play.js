@@ -28,7 +28,7 @@ module.exports = {
         let result = await client.player.search(query, {
             requestedBy: interaction.user
         }).catch(() => {});
-        if (!result.tracks.length) return void interaction.followUp({ content: "❌ | No results were found!" });
+        if (!result.tracks.length) return void interaction.followUp({ content: "❌ | No results were found!", flags: MessageFlags.Ephemeral });
 
         if (result.type === "PLAYLIST") { 
             for (let track of result.tracks) player.queue.add(track)

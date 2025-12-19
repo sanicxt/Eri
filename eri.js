@@ -11,9 +11,9 @@ client.colour = 0x17BEBB;
 const Nodes = [
   {
     name: 'Catfein DE',
-    url: 'lava-v4.ajieblogs.eu.org',
+    url: 'public.rive.wtf',
     port: 443,
-    auth: 'https://dsc.gg/ajidevserver',
+    auth: 'youshallnotpass',
     secure: true
   },
 ]

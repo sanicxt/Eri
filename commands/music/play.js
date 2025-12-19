@@ -17,18 +17,24 @@ module.exports = {
         let player = client.player.getPlayer(interaction.guildId)
 
         if(!player) {
-           player = await client.player.createPlayer({
-            guildId:  interaction.guildId,
-            textId:  interaction.channel.id,
-            voiceId:  interaction.member.voice.channel.id,
-            deaf: true,
-            volume: 40
-        })
-    }
+           try {
+               player = await client.player.createPlayer({
+                   guildId:  interaction.guildId,
+                   textId:  interaction.channel.id,
+                   voiceId:  interaction.member.voice.channel.id,
+                   deaf: true,
+                   volume: 40
+               });
+           } catch (err) {
+               console.error('play: createPlayer failed', err);
+               return void interaction.followUp({ content: '❌ | No available nodes to play music right now. Please try again later.', flags: MessageFlags.Ephemeral });
+           }
+        }
+
         let result = await client.player.search(query, {
             requestedBy: interaction.user
-        }).catch(() => {});
-        if (!result.tracks.length) return void interaction.followUp({ content: "❌ | No results were found!", flags: MessageFlags.Ephemeral });
+        }).catch(err => { console.error('play: search error', err); return null; });
+        if (!result || !result.tracks || !result.tracks.length) return void interaction.followUp({ content: "❌ | No results were found!", flags: MessageFlags.Ephemeral });
 
         if (result.type === "PLAYLIST") { 
             for (let track of result.tracks) player.queue.add(track)

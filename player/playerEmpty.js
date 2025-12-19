@@ -1,6 +1,6 @@
 module.exports = async (client, player) => {
     try {
-        client.channels.cache.get(player.textId).send({embeds:[{description:`✅ | No More Songs to Play! Leaving in 30 minutes if no new songs are added.`,color:`${client.colour}`}]});
+        client.channels.cache.get(player.textId)?.send({embeds:[{description:`✅ | No More Songs to Play! Leaving in 30 minutes if no new songs are added.`,color:`${client.colour}`}]});
         
         // Clear tracked now-playing message for this guild (if any)
         try {
@@ -23,12 +23,36 @@ module.exports = async (client, player) => {
         // Set 30-minute timeout to leave voice channel
         const timeout = setTimeout(() => {
             try {
-                // Use Kazagumo player API when available, otherwise fall back to the provided player
-                const guildPlayer = client.player?.getPlayer(player.guildId) || player;
+                // Resolve guild player safely across possible manager implementations
+                let guildPlayer;
+                try {
+                    if (client.player && typeof client.player.getPlayer === 'function') {
+                        guildPlayer = client.player.getPlayer(player.guildId);
+                    } else if (client.kazagumo && client.kazagumo.players && typeof client.kazagumo.players.get === 'function') {
+                        guildPlayer = client.kazagumo.players.get(player.guildId);
+                    } else if (client.kazagumo && typeof client.kazagumo.getPlayer === 'function') {
+                        guildPlayer = client.kazagumo.getPlayer(player.guildId);
+                    } else {
+                        guildPlayer = player;
+                    }
+                } catch (getErr) {
+                    console.error('playerEmpty: error getting guild player', getErr);
+                    guildPlayer = player;
+                }
+
                 if (guildPlayer) {
-                    // Some implementations return a promise, some return boolean; handle both
-                    const result = guildPlayer.destroy && guildPlayer.destroy();
-                    if (result instanceof Promise) result.catch(err => console.error('Error destroying guild player:', err));
+                    // Call destroy/stop if available
+                    try {
+                        if (typeof guildPlayer.destroy === 'function') {
+                            const result = guildPlayer.destroy();
+                            if (result instanceof Promise) result.catch(err => console.error('Error destroying guild player:', err));
+                        } else if (typeof guildPlayer.stop === 'function') {
+                            const result = guildPlayer.stop();
+                            if (result instanceof Promise) result.catch(err => console.error('Error stopping guild player:', err));
+                        }
+                    } catch (opErr) {
+                        console.error('playerEmpty: error while stopping/destroying player', opErr);
+                    }
 
                     client.channels.cache.get(player.textId)?.send({
                         embeds: [{

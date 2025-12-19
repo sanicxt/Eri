@@ -1,14 +1,11 @@
 module.exports = async (client, player) => {
     client.channels.cache.get(player.textId).send({embeds:[{description:`❌ | I was disconnected from the voice channel`,color:`${client.colour}`}]});
     try{
-        let x = client.config.discord.ne.find(e => e.guildId == player.guildId);
-        if (x) { 
-            x.delete()
-            let y = client.config.discord.ne.indexOf(x)
-            client.config.discord.ne.splice(y, 1)
-        }
+        const np = require('../bot/nowPlaying');
+        await np.clear(client, player.guildId);
     }
-    catch {
+    catch (err) {
+        console.error('playerClosed: failed to clear now playing message', err);
         client.channels.cache.get(player.textId).send({embeds:[{description:`❌ | Something went wrong!`,color:`${client.colour}`}]});
     }
 }

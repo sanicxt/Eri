@@ -4,6 +4,7 @@ module.exports = {
     utilisation: '/ping',
 
     async execute(client, interaction) {
-        interaction.reply({ content: 'Pong! '+client.ws.ping+" ms", ephemeral: true })
+        const { MessageFlags } = require('discord.js');
+        interaction.reply({ content: 'Pong! '+client.ws.ping+" ms", flags: MessageFlags.Ephemeral })
     }
 }

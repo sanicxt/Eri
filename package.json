@@ -23,7 +23,6 @@
     "kazagumo-spotify": "^2.1.1",
     "moment": "^2.30.1",
     "moment-duration-format": "^2.3.2",
-    "ncu": "^0.2.1",
     "shoukaku": "^4.2.0",
     "tweetnacl": "^1.0.3",
     "ytdl-core": "^4.11.5"

@@ -1,11 +1,5 @@
+// playerClosed is now handled by playerMoved (LEFT state).
+// This handler is kept as a no-op for compatibility.
 module.exports = async (client, player) => {
-    client.channels.cache.get(player.textId).send({embeds:[{description:`❌ | I was disconnected from the voice channel`,color:`${client.colour}`}]});
-    try{
-        const np = require('../bot/nowPlaying');
-        await np.clear(client, player.guildId);
-    }
-    catch (err) {
-        console.error('playerClosed: failed to clear now playing message', err);
-        client.channels.cache.get(player.textId).send({embeds:[{description:`❌ | Something went wrong!`,color:`${client.colour}`}]});
-    }
+    // No-op: All cleanup is done in playerMoved LEFT case
 }

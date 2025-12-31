@@ -1,7 +1,8 @@
 const { Client, Collection, GatewayIntentBits } = require("discord.js");
 const fs = require('fs');
 // Use Connectors exported by kazagumo (not shoukaku) for compatibility
-const { Connectors, Kazagumo } = require("kazagumo");
+const { Kazagumo,Plugins } = require("kazagumo");
+const {Connectors} = require("shoukaku");
 const KazagumoFilter = require('kazagumo-filter');
 const Spotify = require('kazagumo-spotify');
 const client = new Client({ intents: [ GatewayIntentBits.Guilds ,GatewayIntentBits.GuildMessages,GatewayIntentBits.GuildVoiceStates] });
@@ -12,13 +13,13 @@ client.colour = 0x17BEBB;
 // Static Lavalink node list (using the server you specified)
 const Nodes = [
   {
-    name: 'Catfein DE',
-    url: 'public.rive.wtf',
+    name: 'Jirayu',
+    url: 'lavalink.jirayu.net',
     port: 443,
     auth: 'youshallnotpass',
     secure: true
   },
-];
+]
 
 async function initPlayerAndLogin() {
     // Load commands and events that don't depend on the player
@@ -48,7 +49,7 @@ async function initPlayerAndLogin() {
     }
 
     // Build plugin list dynamically: only include Spotify plugin if credentials are provided
-    const plugins = [new KazagumoFilter()];
+    const plugins = [new KazagumoFilter(), new Plugins.PlayerMoved(client)];
     if (client.config.discord.spotify_client_id && client.config.discord.spotify_client_secret) {
         plugins.push(new Spotify({
             clientId: client.config.discord.spotify_client_id,

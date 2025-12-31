@@ -16,7 +16,7 @@ function getTrackLengthMs(track) {
     if (typeof track.duration === 'number' && track.duration) return track.duration;
     if (track?.info?.length) return track.info.length;
     return 0;
-} 
+}
 
 function buildQueueEmbed(client, player, page = 0, pageSize = 5) {
     if (!player || !player.playing) return null;
@@ -56,21 +56,21 @@ module.exports = {
     category: 'Music',
     utilisation: '/queue',
 
-   async execute(client, interaction) {
-    if (!(interaction.member instanceof GuildMember) || !interaction.member.voice.channel) {
-        return void interaction.reply({ content: "You are not in a voice channel!", ephemeral: true });
-    }
+    async execute(client, interaction) {
+        if (!(interaction.member instanceof GuildMember) || !interaction.member.voice.channel) {
+            return void interaction.reply({ content: "You are not in a voice channel!", ephemeral: true });
+        }
 
-    if (interaction.guild.me?.voice?.channelId && interaction.member?.voice?.channelId !== interaction.guild.me?.voice?.channelId) {
-        return void interaction.reply({ content: "You are not in my voice channel!", ephemeral: true });
-    }
-    await interaction.deferReply();
-    const player = client.player.getPlayer(interaction.guildId);
-    if (!player || !player.playing) return void interaction.followUp({ content: "❌ | No music is being played!", flags: MessageFlags.Ephemeral });
+        if (interaction.guild.me?.voice?.channelId && interaction.member?.voice?.channelId !== interaction.guild.me?.voice?.channelId) {
+            return void interaction.reply({ content: "You are not in my voice channel!", ephemeral: true });
+        }
+        await interaction.deferReply();
+        const player = client.player.getPlayer(interaction.guildId);
+        if (!player || (!player.playing && !player.paused && !player.queue?.current)) return void interaction.followUp({ content: "❌ | No music is being played!", flags: MessageFlags.Ephemeral });
 
-    const resp = buildQueueEmbed(client, player);
-    if (!resp) return void interaction.followUp({ content: "❌ | No music is being played!", flags: MessageFlags.Ephemeral });
-    return void interaction.followUp(resp);
-  },
-  buildQueueEmbed
+        const resp = buildQueueEmbed(client, player);
+        if (!resp) return void interaction.followUp({ content: "❌ | No music is being played!", flags: MessageFlags.Ephemeral });
+        return void interaction.followUp(resp);
+    },
+    buildQueueEmbed
 }

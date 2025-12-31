@@ -15,13 +15,15 @@ const BUTTON_IDS = {
 };
 
 // Helper function to check voice permissions
-const checkVoicePermissions = (interaction) => {
+const checkVoicePermissions = (interaction, player = null) => {
     if (!(interaction.member instanceof GuildMember) || !interaction.member.voice.channel) {
         throw new Error("You are not in a voice channel!");
     }
+    // Get bot's voice channel from guild.me or fallback to player.voiceId
+    const botVoiceChannelId = interaction.guild.me?.voice?.channelId || player?.voiceId;
+    const memberVoiceChannelId = interaction.member?.voice?.channelId;
 
-    if (interaction.guild.me?.voice?.channelId && 
-        interaction.member?.voice?.channelId !== interaction.guild.me?.voice?.channelId) {
+    if (botVoiceChannelId && memberVoiceChannelId !== botVoiceChannelId) {
         throw new Error("You are not in my voice channel!");
     }
 };
@@ -29,7 +31,8 @@ const checkVoicePermissions = (interaction) => {
 // Helper function to check if music is playing or paused
 const checkMusicPlaying = (query) => {
     // Allow control when a track is playing or paused (so resume works)
-    if (!query || (!query.playing && !query.paused)) {
+    // Also allow if there's a current track in queue (handles transient states like moving)
+    if (!query || (!query.playing && !query.paused && !query.queue?.current)) {
         throw new Error("❌ | No music is being played!");
     }
 };
@@ -45,7 +48,7 @@ module.exports = async (client, interaction) => {
     try {
         // Handle non-button, non-command, and non-select interactions
         if (!interaction.isButton() && !interaction.isCommand() && !interaction.isStringSelectMenu()) return;
-        
+
         const query = client.player.getPlayer(interaction.guildId);
 
         // Handle select interactions (queue selection)
@@ -94,17 +97,17 @@ module.exports = async (client, interaction) => {
 
         // Handle commands
         if (!interaction.guildId) return;
-        
+
         const command = client.commands.get(interaction.commandName);
         if (command) await command.execute(client, interaction);
 
     } catch (error) {
         console.error('Error in interaction:', error);
-        const reply = { 
-            content: error.message || "An error occurred!", 
-            flags: MessageFlags.Ephemeral 
-        }; 
-        
+        const reply = {
+            content: error.message || "An error occurred!",
+            flags: MessageFlags.Ephemeral
+        };
+
         if (interaction.deferred || interaction.replied) {
             await interaction.followUp(reply);
         } else {
@@ -115,21 +118,21 @@ module.exports = async (client, interaction) => {
 
 // Helper functions for handling specific button actions
 async function handlePauseResume(interaction, query) {
-    checkVoicePermissions(interaction);
+    checkVoicePermissions(interaction, query);
     checkMusicPlaying(query);
 
     const isPaused = query.paused;
     query.pause(!isPaused);
-    
+
     await interaction.update({
         components: [isPaused ? pp.pause() : pp.resume()]
     });
 }
 
 async function handleVolumeButton(interaction, query, delta) {
-    checkVoicePermissions(interaction);
+    checkVoicePermissions(interaction, query);
     checkMusicPlaying(query);
-    
+
     handleVolumeChange(query, delta);
     await interaction.update({ components: [pp.pause()] });
 }
@@ -168,7 +171,7 @@ async function handleQueuePagination(interaction, customId) {
 
     const select = buildQueueSelect(interaction.user.id, player, targetPage, pageSize);
     const row = require('../bot/buttons').queuePageButtons(interaction.user.id, targetPage, totalPages);
-    const components = [ ...(select ? [select] : []), row ];
+    const components = [...(select ? [select] : []), row];
     return void interaction.update({ ...resp, components });
 }
 
@@ -177,7 +180,7 @@ function buildQueueSelect(userId, player, page, pageSize) {
     const items = (player.queue || []).slice(start, start + pageSize);
     const options = items.map((m, i) => ({
         label: `${start + i + 1}. ${m.title.substring(0, 100)}`,
-        description: `${m.author || ''} • ${ (getTrackLengthMs(m) > 0 ? formatDuration(getTrackLengthMs(m)) : '?:??') }`.substring(0, 100),
+        description: `${m.author || ''} • ${(getTrackLengthMs(m) > 0 ? formatDuration(getTrackLengthMs(m)) : '?:??')}`.substring(0, 100),
         value: String(start + i)
     }));
 
@@ -191,7 +194,7 @@ function buildQueueSelect(userId, player, page, pageSize) {
 
     const row = new ActionRowBuilder().addComponents(select);
     return row;
-}  
+}
 
 function formatDuration(ms = 0) {
     const totalSeconds = Math.floor(ms / 1000);
@@ -208,7 +211,7 @@ function getTrackLengthMs(track) {
     if (typeof track.duration === 'number' && track.duration) return track.duration;
     if (track?.info?.length) return track.info.length;
     return 0;
-} 
+}
 
 // Session helpers: ensure sessions map, create session (auto-expire), clear session, validate session
 function ensureQueueSessions(client) {
@@ -242,7 +245,7 @@ function isQueueSessionValid(client, guildId, userId) {
 }
 
 async function handleQueueButton(interaction, query) {
-    checkVoicePermissions(interaction);
+    checkVoicePermissions(interaction, query);
     checkMusicPlaying(query);
 
     const pageSize = 5;
@@ -259,7 +262,7 @@ async function handleQueueButton(interaction, query) {
     // Include pagination buttons and a select menu for choosing a track (show when the current page has items)
     const select = buildQueueSelect(interaction.user.id, query, page, pageSize);
     const row = require('../bot/buttons').queuePageButtons(interaction.user.id, page, totalPages);
-    const components = [ ...(select ? [select] : []), row ];
+    const components = [...(select ? [select] : []), row];
 
     // Always send as an ephemeral reply so only the clicker sees it
     if (interaction.deferred || interaction.replied) {
@@ -294,7 +297,7 @@ async function handleQueueSelect(interaction, customId) {
     const idx = parseInt(value, 10);
     const player = interaction.client.player.getPlayer(interaction.guildId);
     try {
-        checkVoicePermissions(interaction);
+        checkVoicePermissions(interaction, player);
         checkMusicPlaying(player);
     } catch (err) {
         return void interaction.editReply({ content: err.message || "You must be in a voice channel with the bot." });

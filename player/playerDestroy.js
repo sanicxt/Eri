@@ -1,7 +1,5 @@
 module.exports = async (client, player) => {
     try {
-        client.channels.cache.get(player.textId)?.send({embeds:[{description:`✅ | Playback Stopped!`,color:`${client.colour}`}]});
-        
         // Clear tracked now-playing message for this guild (if any)
         try {
             const np = require('../bot/nowPlaying');

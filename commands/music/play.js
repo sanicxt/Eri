@@ -27,8 +27,16 @@ module.exports = {
                });
            } catch (err) {
                console.error('play: createPlayer failed', err);
-               return void interaction.followUp({ content: '❌ | No available nodes to play music right now. Please try again later.', flags: MessageFlags.Ephemeral });
+               const errorMsg = err.message?.includes('No node') 
+                   ? '❌ | No Lavalink nodes available. Please check server status and try again.' 
+                   : '❌ | No available nodes to play music right now. Please try again later.';
+               return void interaction.followUp({ content: errorMsg, flags: MessageFlags.Ephemeral });
            }
+        }
+
+        // Verify player was created successfully
+        if (!player) {
+            return void interaction.followUp({ content: '❌ | Failed to initialize player. Please try again.', flags: MessageFlags.Ephemeral });
         }
 
         let result = await client.player.search(query, {

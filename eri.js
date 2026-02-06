@@ -10,18 +10,20 @@ client.config = require("./bot/config")
 client.commands = new Collection();
 client.colour = 0x17BEBB;
 
-// Static Lavalink node list (using the server you specified)
-const Nodes = [
-  {
-    name: 'Jirayu',
-    url: 'lavalink.jirayu.net',
-    port: 443,
-    auth: 'youshallnotpass',
-    secure: true
-  },
+// Static Lavalink node list - can be updated dynamically via /setnode command
+let Nodes = [
+{
+    name: "Serenetia",
+    url: "lavalinkv4.serenetia.com",
+    port: 80,
+    auth: "https://dsc.gg/ajidevserver",
+    secure: false
+  }
 ]
 
 async function initPlayerAndLogin() {
+    // Register slash commands
+    
     // Load commands and events that don't depend on the player
     fs.readdirSync('./commands').forEach(dirs => {
         const commands = fs.readdirSync(`./commands/${dirs}`).filter(files => files.endsWith('.js'));
@@ -70,6 +72,24 @@ async function initPlayerAndLogin() {
             if (guild) guild.shard.send(payload);
         }
     }, new Connectors.DiscordJS(client), Nodes);
+    
+    // Handle Shoukaku errors gracefully
+    client.player.shoukaku.on('error', (name, error) => {
+        console.error(`Shoukaku error on node ${name}:`, error.message || error);
+    });
+    
+    // Handle player update errors gracefully
+    client.player.shoukaku.on('playerUpdate', (connection, data) => {
+        try {
+            // This will be handled by the player update logic
+        } catch (error) {
+            if (error.status === 404) {
+                console.warn(`Player not found on node - likely a transient issue:`, error.message);
+            } else {
+                console.error('Player update error:', error.message);
+            }
+        }
+    });
 
     // Load Kazagumo player event handlers now that client.player exists
     const playerFiles = fs.readdirSync('./player').filter(file => file.endsWith('.js'));
@@ -83,13 +103,25 @@ async function initPlayerAndLogin() {
     try {
         client.player.on('NODE_CONNECT', node => console.log(`Kazagumo: node connected ${node.name}`));
         client.player.on('NODE_DISCONNECT', node => console.warn(`Kazagumo: node disconnected ${node.name}`));
+        
+        // Handle node errors gracefully
+        client.player.on('NODE_ERROR', (node, error) => {
+            console.error(`Kazagumo: node error on ${node.name}:`, error.message || error);
+        });
+        
+        // Handle reconnection attempts
+        client.player.on('NODE_RECONNECTING', node => {
+            console.log(`Kazagumo: node ${node.name} is reconnecting...`);
+        });
     } catch (err) {
         // Some versions may not emit these events
+        console.warn('Could not register node event handlers:', err.message);
     }
 
     // No periodic node refresh configured — using the static node list as-is
     let currentNodes = Nodes;
     const nodeKey = n => `${n.url}:${n.port}:${n.auth}:${n.secure}`;
+    require('./reload.js');
 
     client.login(client.config.discord.token);
 }
@@ -97,5 +129,15 @@ async function initPlayerAndLogin() {
 initPlayerAndLogin().catch(err => {
     console.error('Failed to initialize player and login:', err);
     process.exit(1);
+});
+
+// Handle unhandled promise rejections from Shoukaku player operations
+process.on('unhandledRejection', (reason, promise) => {
+    if (reason?.status === 404 && reason?.path?.includes('/players/')) {
+        // Silently handle player not found errors - these occur during node switches
+        console.debug('Player not found (likely due to node switch):', reason.path);
+    } else {
+        console.error('Unhandled Rejection:', reason);
+    }
 });
 

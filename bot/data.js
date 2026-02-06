@@ -196,4 +196,22 @@ module.exports = {
         name: "stop",
         description: "Stop the player"
     },
+    {
+        name: "setnode",
+        description: "Update Lavalink node configuration (admin only)",
+        options: [
+            {
+                name: "config",
+                description: "JSON configuration for the node",
+                type: 3,
+                required: true
+            },
+            {
+                name: "test",
+                description: "Test the connection to the new node",
+                type: 5,
+                required: false
+            }
+        ]
+    },
 ] };

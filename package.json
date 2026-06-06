@@ -1,36 +1,31 @@
 {
   "name": "eri",
   "version": "4.0.0",
-  "description": "Simple music bot created with Distube",
+  "description": "Simple music bot powered by discord-player",
   "main": "index.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Killerpac/Eri.git"
   },
   "scripts": {
-    "start": "node eri.js"
-  },
-  "engines": {
-    "node": "^18.0.x"
+    "start": "bun eri.js"
   },
   "author": "Killerpac",
   "license": "MIT",
   "dependencies": {
+    "@discord-player/extractor": "^7.2.0",
     "@discordjs/rest": "2.4.2",
+    "@snazzah/davey": "^0.1.11",
     "axios": "^1.13.2",
-    "discord-api-types": "^0.37.120",
+    "discord-api-types": "^0.38.48",
+    "discord-player": "^7.2.0",
     "discord.js": "^14.25.1",
     "dotenv": "^16.6.1",
-    "kazagumo": "^3.4.0",
-    "kazagumo-filter": "^2.0.0",
-    "kazagumo-spotify": "^2.1.1",
-    "moment": "^2.30.1",
-    "moment-duration-format": "^2.3.2",
+    "ffmpeg-static": "^5.3.0",
+    "mediaplex": "^1.0.0",
     "ncu": "^0.2.1",
     "npm-check-updates": "^17.1.18",
-    "shoukaku": "^4.2.0",
-    "tweetnacl": "^1.0.3",
-    "ytdl-core": "^4.11.5"
+    "tweetnacl": "^1.0.3"
   },
   "bugs": {
     "url": "https://github.com/Killerpac/Eri/issues"

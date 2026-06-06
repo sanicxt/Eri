@@ -1,0 +1,7 @@
+.env
+.git
+node_modules
+*.log
+youtube.cookies.txt
+Dockerfile
+docker-compose.yml

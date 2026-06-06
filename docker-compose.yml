@@ -1,0 +1,21 @@
+services:
+  eri:
+    build: .
+    container_name: eri
+    restart: unless-stopped
+    environment:
+      - TOKEN=${TOKEN}
+      - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID}
+      - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET}
+      - FFMPEG_PATH=/usr/bin/ffmpeg
+      - YOUTUBE_REGION=${YOUTUBE_REGION:-IN}
+      - YOUTUBE_LANG=${YOUTUBE_LANG:-en}
+      - YOUTUBE_TIMEZONE=${YOUTUBE_TIMEZONE:-Asia/Kolkata}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # Optional: mount a YouTube cookies file for authenticated sessions
+    # volumes:
+    #   - ./youtube.cookies.txt:/eri/youtube.cookies.txt:ro

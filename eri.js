@@ -1,99 +1,86 @@
-const { Client, Collection, Intents , GatewayIntentBits} = require("discord.js");
-const fs = require('fs');
-const {Connectors} = require("shoukaku");
-const  {Kazagumo} = require("kazagumo");
-const KazagumoFilter = require('kazagumo-filter');
-const Spotify = require('kazagumo-spotify');
-const client = new Client({ intents: [ GatewayIntentBits.Guilds ,GatewayIntentBits.GuildMessages,GatewayIntentBits.GuildVoiceStates] });
-client.config = require("./bot/config")
+const { Client, Collection, GatewayIntentBits } = require("discord.js");
+const fs = require("fs");
+const path = require("path");
+const { Player } = require("discord-player");
+const { DefaultExtractors } = require("@discord-player/extractor");
+const YoutubeExtractor = require("./extractors/YouTubeExtractor");
+const ffmpegStatic = require("ffmpeg-static");
+
+if (ffmpegStatic) process.env.FFMPEG_PATH = ffmpegStatic;
+
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildVoiceStates,
+  ],
+});
+client.config = require("./bot/config");
 client.commands = new Collection();
-client.colour = 0x17BEBB;
+client.colour = 0x17bebb;
 
-// Static Lavalink node list (using the server you specified)
-const Nodes = [
-  {
-    name: 'Catfein DE',
-    url: 'public.rive.wtf',
-    port: 443,
-    auth: 'youshallnotpass',
-    secure: true
-  },
-];
-
-async function initPlayerAndLogin() {
-    // Load commands and events that don't depend on the player
-    fs.readdirSync('./commands').forEach(dirs => {
-        const commands = fs.readdirSync(`./commands/${dirs}`).filter(files => files.endsWith('.js'));
-
-        for (const file of commands) {
-            const command = require(`./commands/${dirs}/${file}`);
-            console.log(`Loading command ${file}`);
-            client.commands.set(command.name.toLowerCase(), command);
-        };
-    });
-
-    const events = fs.readdirSync('./events').filter(file => file.endsWith('.js'));
-    for (const file of events) {
-        console.log(`Loading discord.js event ${file}`);
-        const event = require(`./events/${file}`);
-        client.on(file.split(".")[0], event.bind(null, client));
-    };
-
-
-const Nodes = [
-  {
-    name: 'Catfein DE',
-    url: 'public.rive.wtf',
-    port: 443,
-    auth: 'youshallnotpass',
-    secure: true
-  },
-]
-
-    client.player =  new Kazagumo({
-        plugins: [
-            new KazagumoFilter(),
-            new Spotify({
-                clientId: client.config.discord.spotify_client_id,
-                clientSecret: client.config.discord.spotify_client_secret,
-                playlistPageLimit: 1, // optional ( 100 tracks per page )
-                albumPageLimit: 1, // optional ( 50 tracks per page )
-                searchLimit: 10, // optional ( track search limit. Max 50 )
-              })
-          ],
-        defaultSearchEngine: "youtube-music",
-        // MAKE SURE YOU HAVE THIS
-        send: (guildId, payload) => {
-            const guild = client.guilds.cache.get(guildId);
-            if (guild) guild.shard.send(payload);
-        }
-    }, new Connectors.DiscordJS(client), Nodes);
-
-    // Load Kazagumo player event handlers now that client.player exists
-    const playerFiles = fs.readdirSync('./player').filter(file => file.endsWith('.js'));
-    for (const file of playerFiles) {
-        console.log(`Loading Kazagumo event ${file}`);
-        const event = require(`./player/${file}`);
-        client.player.on(file.split(".")[0], event.bind(null, client));
+async function init() {
+  fs.readdirSync("./commands").forEach((dirs) => {
+    const commands = fs
+      .readdirSync(`./commands/${dirs}`)
+      .filter((f) => f.endsWith(".js"));
+    for (const file of commands) {
+      const command = require(`./commands/${dirs}/${file}`);
+      console.log(`Loading command ${file}`);
+      client.commands.set(command.name.toLowerCase(), command);
     }
+  });
 
-    // Optional: log node status
-    try {
-        client.player.on('NODE_CONNECT', node => console.log(`Kazagumo: node connected ${node.name}`));
-        client.player.on('NODE_DISCONNECT', node => console.warn(`Kazagumo: node disconnected ${node.name}`));
-    } catch (err) {
-        // Some versions may not emit these events
+  const events = fs.readdirSync("./events").filter((f) => f.endsWith(".js"));
+  for (const file of events) {
+    console.log(`Loading discord.js event ${file}`);
+    const event = require(`./events/${file}`);
+    client.on(file.split(".")[0], event.bind(null, client));
+  }
+
+  const player = new Player(client, ffmpegStatic ? { ffmpegPath: ffmpegStatic } : undefined);
+  await player.extractors.loadMulti(DefaultExtractors);
+
+  // YouTube extractor: load cookies if available so SABR streaming can sign in.
+  // Provide cookies via one of:
+  //   1. YOUTUBE_COOKIE env var containing a Netscape-format cookies.txt string
+  //   2. youtube.cookies.txt file in the project root
+  // The custom extractor works without cookies using the ANDROID client for
+  // streaming, but cookies can still help with edge cases.
+  let ytCookie;
+  let ytCookieSource = null;
+  if (process.env.YOUTUBE_COOKIE) {
+    ytCookie = process.env.YOUTUBE_COOKIE;
+    ytCookieSource = "YOUTUBE_COOKIE env";
+  } else {
+    const cookieFile = path.resolve(__dirname, "youtube.cookies.txt");
+    if (fs.existsSync(cookieFile)) {
+      const stat = fs.statSync(cookieFile);
+      const ageDays = (Date.now() - stat.mtimeMs) / (1000 * 60 * 60 * 24);
+      ytCookie = fs.readFileSync(cookieFile, "utf8");
+      ytCookieSource = `youtube.cookies.txt (${stat.size} bytes, ${ageDays.toFixed(1)}d old)`;
     }
+  }
 
-    // No periodic node refresh configured — using the static node list as-is
-    let currentNodes = Nodes;
-    const nodeKey = n => `${n.url}:${n.port}:${n.auth}:${n.secure}`;
+  if (ytCookie) {
+    console.log(`YoutubeExtractor: cookies from ${ytCookieSource} (optional — extractor works without them via ANDROID progressive format)`);
+  } else {
+    console.log("YoutubeExtractor: no cookies — using ANDROID progressive format for unauthenticated streaming (no SABR / IP-binding issues).");
+  }
+  await player.extractors.register(YoutubeExtractor, { cookie: ytCookie });
+  client.player = player;
 
-    client.login(client.config.discord.token);
+  const playerFiles = fs.readdirSync("./player").filter((f) => f.endsWith(".js"));
+  for (const file of playerFiles) {
+    console.log(`Loading discord-player event ${file}`);
+    const event = require(`./player/${file}`);
+    player.events.on(file.split(".")[0], event.bind(null, client));
+  }
+
+  await client.login(client.config.discord.token);
 }
 
-initPlayerAndLogin().catch(err => {
-    console.error('Failed to initialize player and login:', err);
-    process.exit(1);
+init().catch((err) => {
+  console.error("Failed to initialize:", err);
+  process.exit(1);
 });
-

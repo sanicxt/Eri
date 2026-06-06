@@ -32,6 +32,7 @@ FROM node:20-slim AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 make g++ curl       \
+    ca-certificates openssl      \
     pkg-config libopus-dev       \
     ffmpeg                       \
   && rm -rf /var/lib/apt/lists/*

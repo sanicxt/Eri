@@ -10,6 +10,16 @@ const YoutubeExtractor = require("./extractors/YouTubeExtractor");
 // version is updated independently and shared across the system.
 process.env.FFMPEG_PATH = process.env.FFMPEG_PATH || "/opt/homebrew/bin/ffmpeg";
 
+// Log unhandled promise rejections / exceptions so silent crashes
+// (e.g. the compiled DAVE binary panicking on s390x) leave a trace
+// instead of just dropping the process.
+process.on("unhandledRejection", (reason) => {
+  console.error("[unhandledRejection]", reason);
+});
+process.on("uncaughtException", (err) => {
+  console.error("[uncaughtException]", err);
+});
+
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,

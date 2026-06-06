@@ -56,7 +56,9 @@ RUN git clone --depth 1 https://github.com/Snazzah/davey.git
 WORKDIR /tmp/davey/davey-node
 RUN npm install --no-audit --no-fund       \
   && npx napi build --release             \
-  && ls -la *.node
+  && ls -la *.node                          \
+  && echo "--- ldd of compiled davey binary ---" \
+  && ldd davey.node 2>&1 | head -30
 
 # ---- Main builder: npm install + copy davey native binary ----
 FROM node:20-slim AS builder
@@ -86,8 +88,12 @@ RUN ls -la node_modules/@snazzah/davey/davey.linux-s390x-gnu.node && \
 # ---- runtime ----
 FROM node:20-slim
 
+# Runtime libraries needed by the bot and its native modules:
+# • ffmpeg, libopus0     — audio decoding + opus codec
+# • libssl3, ca-certs    — openmls (davey's MLS crypto) links against
+#                          libssl/libcrypto; CA bundle for TLS verification
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg libopus0              \
+    ffmpeg libopus0 libssl3 ca-certificates \
   && rm -rf /var/lib/apt/lists/* \
   && groupadd -r eri && useradd -r -g eri eri
 

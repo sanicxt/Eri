@@ -3,10 +3,10 @@ const np = require("../bot/nowPlaying");
 module.exports = async (client, queue, error, track) => {
   const title = track?.title ? ` **${track.title}**` : "";
   console.error(`playerError from queue ${queue.id}:`, error?.message || error);
+  if (error?.stack) console.error(error.stack);
+
   const meta = queue.metadata || {};
   const channel = meta.channel;
-
-  // Detect the "must be signed in" SABR auth failure and give the user an actionable hint.
   const msg = error?.message || String(error || "unknown");
   const isSignInError = /must be signed in|sign.in.required|accounts\.google\.com/i.test(msg);
   const hint = isSignInError

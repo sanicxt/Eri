@@ -40,6 +40,12 @@ module.exports = {
           leaveOnEndCooldown: 30 * 60 * 1000,   // 30 minutes
           leaveOnStop: false,                     // /stop should be immediate
         },
+        connectionOptions: {
+          // Disable DAVE protocol encryption — the @snazzah/davey native
+          // addon doesn't compile on s390x (IBM LinuxONE).  discord-voip
+          // will use the legacy WebSocket voice transport instead.
+          daveEncryption: false,
+        },
         requestedBy: interaction.user,
       });
 

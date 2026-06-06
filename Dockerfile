@@ -4,21 +4,29 @@
 # Start · docker compose up -d
 # Logs  · docker compose logs -f
 #
-# Native modules (mediaplex, @discord-player/opus, @snazzah/davey) ship
-# prebuilt binaries for x86_64/aarch64 but not for s390x.  The builder
-# stage provides the full toolchain so node-gyp can compile them from
-# source against system libraries.
+# Native modules ship prebuilt binaries for x86_64/aarch64 but not for
+# s390x.  The builder stage provides the toolchain (g++, python3, make,
+# pkg-config) so node-gyp can compile them from source.
 #
-# Known s390x pitfalls
-# ───────────────────
-# • opusscript (WASM) — crashes with "memory access out of bounds".
-#   We install libopus-dev so mediaplex links against real libopus
-#   instead of falling back to the broken WASM codec.
-# • @snazzah/davey — native TCP/UDP DAVE protocol addon.  If gyp fails
-#   to compile it (missing headers, arch-specific intrinsics), the
-#   container will fail on every voice connection.  The fallback is
-#   to remove @snazzah/davey from package.json and use the legacy
-#   WebSocket voice transport (discord-voip will auto-negotiate).
+# Opus codec strategy for s390x
+# ──────────────────────────────
+# @discord-player/opus tries backends in this order:
+#   • mediaplex      – no prebuilt binary for s390x (skipped)
+#   • @discordjs/opus – bundled libopus fails to compile (config.h missing)
+#   • opusscript     – WASM binary crashes ("memory access out of bounds")
+#   • @evan/opus     – native tries first, then falls back to its own WASM
+#   • node-opus      – same config.h problem as @discordjs/opus
+#
+# We remove opusscript from node_modules after npm install so the chain
+# falls through to @evan/opus, which has a newer WASM build that may
+# run correctly on s390x.  If it still crashes, remove @evan/opus from
+# package.json and rely on FFmpeg's libopus encoder instead.
+#
+# DAVE protocol (discord-voip)
+# ────────────────────────────
+# @snazzah/davey is a native addon.  If it fails to compile from source,
+# remove it from package.json — discord-voip will fall back to the legacy
+# WebSocket voice transport.
 
 FROM node:20-slim AS builder
 
@@ -31,7 +39,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /eri
 COPY . .
 RUN npm install --omit=dev       \
-  && rm -rf node_modules/.cache
+  && rm -rf node_modules/opusscript node_modules/.cache
 
 # ---- runtime ----
 FROM node:20-slim

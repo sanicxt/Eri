@@ -12,26 +12,26 @@
 # ──────────────────────────────
 # @discord-player/opus tries backends in this order:
 #   • mediaplex      – no prebuilt binary for s390x (skipped)
-#   • @discordjs/opus – bundled libopus fails to compile (config.h missing)
-#   • opusscript     – WASM binary crashes ("memory access out of bounds")
+#   • opusscript     – WASM binary crashes ("memory access out of bounds");
+#                       physically removed from node_modules after npm install
 #   • @evan/opus     – native tries first, then falls back to its own WASM
-#   • node-opus      – same config.h problem as @discordjs/opus
-#
-# We remove opusscript from node_modules after npm install so the chain
-# falls through to @evan/opus, which has a newer WASM build that may
-# run correctly on s390x.  If it still crashes, remove @evan/opus from
-# package.json and rely on FFmpeg's libopus encoder instead.
+#   • @discordjs/opus – bundled libopus fails to compile (config.h missing;
+#                        not installed)
 #
 # DAVE protocol (discord-voip)
 # ────────────────────────────
-# @snazzah/davey is a native addon.  If it fails to compile from source,
-# remove it from package.json — discord-voip will fall back to the legacy
-# WebSocket voice transport.
+# @snazzah/davey has explicit s390x support in its loader but the
+# @snazzah/davey-linux-s390x-gnu binary package was never published.
+# The loader falls back to @snazzah/davey-wasm32-wasi (a WASM build),
+# but npm skips it because its platform is "wasi/wasm32", not "linux/s390x".
+#
+# We grab the WASI tarball from npm, extract the .cjs loader and .wasm
+# binary into @snazzah/davey/, and the loader picks them up automatically.
 
 FROM node:20-slim AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 make g++             \
+    python3 make g++ curl       \
     pkg-config libopus-dev       \
     ffmpeg                       \
   && rm -rf /var/lib/apt/lists/*
@@ -40,6 +40,18 @@ WORKDIR /eri
 COPY . .
 RUN npm install --omit=dev       \
   && rm -rf node_modules/opusscript node_modules/.cache
+
+# ---- inject DAVE WASI fallback for s390x ----
+RUN DAVEY_WASI_VER=0.1.11 && \
+    mkdir -p /tmp/davey-wasi && \
+    curl -fsSL "https://registry.npmjs.org/@snazzah/davey-wasm32-wasi/-/davey-wasm32-wasi-${DAVEY_WASI_VER}.tgz" \
+      -o /tmp/davey-wasi.tgz && \
+    tar xzf /tmp/davey-wasi.tgz -C /tmp/davey-wasi && \
+    cp /tmp/davey-wasi/package/davey.wasi.cjs \
+       /tmp/davey-wasi/package/davey.wasm32-wasi.wasm \
+       node_modules/@snazzah/davey/ && \
+    rm -rf /tmp/davey-wasi.tgz /tmp/davey-wasi && \
+    echo "DAVE WASI fallback installed for s390x"
 
 # ---- runtime ----
 FROM node:20-slim

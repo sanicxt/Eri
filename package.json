@@ -25,7 +25,8 @@
     "mediaplex": "^1.0.0",
     "ncu": "^0.2.1",
     "npm-check-updates": "^17.1.18",
-    "tweetnacl": "^1.0.3"
+    "tweetnacl": "^1.0.3",
+    "youtubei.js": "^17.0.1"
   },
   "bugs": {
     "url": "https://github.com/Killerpac/Eri/issues"

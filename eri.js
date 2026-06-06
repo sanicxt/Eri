@@ -4,9 +4,11 @@ const path = require("path");
 const { Player } = require("discord-player");
 const { DefaultExtractors } = require("@discord-player/extractor");
 const YoutubeExtractor = require("./extractors/YouTubeExtractor");
-const ffmpegStatic = require("ffmpeg-static");
 
-if (ffmpegStatic) process.env.FFMPEG_PATH = ffmpegStatic;
+// Use the system-installed ffmpeg (Homebrew) instead of the npm binary.
+// ffmpeg-static bundles a ~70MB platform-specific binary; the Homebrew
+// version is updated independently and shared across the system.
+process.env.FFMPEG_PATH = process.env.FFMPEG_PATH || "/opt/homebrew/bin/ffmpeg";
 
 const client = new Client({
   intents: [
@@ -38,7 +40,7 @@ async function init() {
     client.on(file.split(".")[0], event.bind(null, client));
   }
 
-  const player = new Player(client, ffmpegStatic ? { ffmpegPath: ffmpegStatic } : undefined);
+  const player = new Player(client, { ffmpegPath: process.env.FFMPEG_PATH });
   await player.extractors.loadMulti(DefaultExtractors);
 
   // YouTube extractor: load cookies if available so SABR streaming can sign in.

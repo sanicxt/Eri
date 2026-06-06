@@ -73,8 +73,12 @@ COPY . .
 RUN npm install --omit=dev       \
   && rm -rf node_modules/opusscript node_modules/.cache
 
-# Copy the natively-compiled davey binary into the installed package
-COPY --from=rust-builder /tmp/davey/davey-node/davey.linux-s390x-gnu.node \
+# Copy the natively-compiled davey binary into the installed package.
+# The NAPI-RS build emits 'davey.node' (not the platform-specific
+# davey.linux-s390x-gnu.node that the @snazzah/davey loader expects);
+# we rename it during the copy so the explicit s390x branch in
+# index.js finds the right file.
+COPY --from=rust-builder /tmp/davey/davey-node/davey.node \
                           node_modules/@snazzah/davey/davey.linux-s390x-gnu.node
 RUN ls -la node_modules/@snazzah/davey/davey.linux-s390x-gnu.node && \
     echo "Native davey binary installed for s390x"
